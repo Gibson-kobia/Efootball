@@ -1,0 +1,5 @@
+# Netlify build config: ensure Netlify runs builds from the folder containing package.json
+[build]
+  base = "."
+  command = "npm install && npm run build"
+  publish = "out"
