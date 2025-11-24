@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark-blue text-white antialiased;
+    background-image: 
+      linear-gradient(rgba(57, 255, 20, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57, 255, 20, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-neon-green text-black font-bold rounded-xl 
+           hover:bg-opacity-90 transition-all duration-300 
+           shadow-lg shadow-neon-green/50 hover:shadow-neon-green/70
+           transform hover:scale-105 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-transparent border-2 border-neon-green text-neon-green 
+           font-bold rounded-xl hover:bg-neon-green hover:text-black 
+           transition-all duration-300 transform hover:scale-105 active:scale-95;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg bg-gray-900/50 border border-gray-700 
+           text-white placeholder-gray-400 focus:outline-none focus:border-neon-green 
+           focus:ring-2 focus:ring-neon-green/50 transition-all;
+  }
+
+  .card {
+    @apply bg-gray-900/40 backdrop-blur-sm border border-gray-800 rounded-2xl 
+           p-6 shadow-xl border-opacity-50 hover:border-neon-green/50 
+           transition-all duration-300;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-neon-green to-neon-cyan;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 10px rgba(57, 255, 20, 0.5),
+                 0 0 20px rgba(57, 255, 20, 0.3),
+                 0 0 30px rgba(57, 255, 20, 0.2);
+  }
+
+  .neon-border {
+    @apply border-2 border-neon-green;
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.5),
+                0 0 20px rgba(57, 255, 20, 0.3),
+                inset 0 0 10px rgba(57, 255, 20, 0.1);
+  }
+}
+
+@layer utilities {
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14, 0 0 15px #39ff14;
+    }
+    to {
+      box-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14, 0 0 30px #39ff14;
+    }
+  }
+}
+
