@@ -1,6 +1,14 @@
 import { getDb } from './db';
 import { getRoundName } from './utils';
 
+export interface Round {
+  id: number;
+  tournament_id: number;
+  round_number: number;
+  round_name: string;
+  match_count?: number;
+}
+
 export interface Match {
   id: number;
   tournament_id: number;
@@ -156,7 +164,7 @@ export function getBracketData(tournamentId: number): any {
     WHERE r.tournament_id = ?
     GROUP BY r.id
     ORDER BY r.round_number
-  `).all(tournamentId);
+  `).all(tournamentId) as Round[];
 
   const bracket: any = { rounds: [] };
 
