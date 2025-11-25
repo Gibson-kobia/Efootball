@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -16,6 +17,31 @@ export default function RegisterPage() {
     efootballPassword: '',
     platform: 'mobile',
   });
+
+  // Check if user already has a pending registration on this device
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('pendingRegistrationEmail');
+    if (storedEmail) {
+      // Verify the registration is still pending
+      fetch(`/api/auth/approval-status?email=${encodeURIComponent(storedEmail)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'pending') {
+            // Redirect to pending approval page
+            router.push('/pending-approval');
+          } else {
+            // Clear old stored email if not pending anymore
+            localStorage.removeItem('pendingRegistrationEmail');
+            setCheckingExisting(false);
+          }
+        })
+        .catch(() => {
+          setCheckingExisting(false);
+        });
+    } else {
+      setCheckingExisting(false);
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,9 +68,11 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Registration failed');
       }
 
+      // Store the email in localStorage to persist the pending state
+      localStorage.setItem('pendingRegistrationEmail', formData.email.toLowerCase());
       setSuccess(true);
       setTimeout(() => {
-        router.push('/login?registered=true');
+        router.push('/pending-approval');
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -52,6 +80,17 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  if (checkingExisting) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-12">
+        <div className="card text-center">
+          <div className="text-4xl mb-4 animate-pulse">...</div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -61,9 +100,8 @@ export default function RegisterPage() {
           <h2 className="text-2xl font-bold text-neon-green mb-4">Registration Successful!</h2>
           <p className="text-gray-300 mb-6">
             Your registration has been received. An admin will review and approve your account soon.
-            You'll receive an email notification once approved.
           </p>
-          <p className="text-sm text-gray-400">Redirecting to login...</p>
+          <p className="text-sm text-gray-400">Redirecting to approval status page...</p>
         </div>
       </div>
     );
