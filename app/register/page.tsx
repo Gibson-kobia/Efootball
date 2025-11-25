@@ -96,12 +96,19 @@ export default function RegisterPage() {
     return (
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="card text-center">
-          <div className="text-6xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-neon-green mb-4">Registration Successful!</h2>
+          <div className="text-6xl mb-4">
+            <span role="img" aria-label="hourglass">⏳</span>
+          </div>
+          <h2 className="text-2xl font-bold text-yellow-400 mb-4">Pending Approval</h2>
           <p className="text-gray-300 mb-6">
-            Your registration has been received. An admin will review and approve your account soon.
+            Your registration has been submitted successfully! Your account is now pending approval by an administrator.
           </p>
-          <p className="text-sm text-gray-400">Redirecting to approval status page...</p>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-400">
+              You will be able to log in once an admin reviews and approves your registration.
+            </p>
+          </div>
+          <p className="text-sm text-gray-400">Redirecting to status page...</p>
         </div>
       </div>
     );
