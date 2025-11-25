@@ -180,9 +180,9 @@ export default function PendingApprovalPage() {
         <div className="text-6xl mb-4">
           <span role="img" aria-label="hourglass">⏳</span>
         </div>
-        <h2 className="text-2xl font-bold text-neon-green mb-4">Registration Pending</h2>
+        <h2 className="text-2xl font-bold text-yellow-400 mb-4">Pending Approval</h2>
         <p className="text-gray-300 mb-2">
-          Your registration has been received and is awaiting admin approval.
+          Your registration is awaiting admin approval. You will be notified once your account has been reviewed.
         </p>
         {email && (
           <p className="text-sm text-gray-400 mb-6">
@@ -212,7 +212,7 @@ export default function PendingApprovalPage() {
           </button>
         </div>
         <p className="mt-6 text-xs text-gray-500">
-          This page will remain visible on this device until your account is approved or rejected.
+          This status will persist until an admin manually approves or rejects your registration.
         </p>
       </div>
     </div>
