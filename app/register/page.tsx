@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -17,21 +18,30 @@ export default function RegisterPage() {
     platform: 'mobile',
   });
 
-  // Restore pending state from localStorage on mount
+  // Check if user already has a pending registration on this device
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('registrationPending');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.email) {
-          setSuccess(true);
-          setFormData((f) => ({ ...f, email: parsed.email }));
-        }
-      }
-    } catch (e) {
-      // ignore localStorage errors
+    const storedEmail = localStorage.getItem('pendingRegistrationEmail');
+    if (storedEmail) {
+      // Verify the registration is still pending
+      fetch(`/api/auth/approval-status?email=${encodeURIComponent(storedEmail)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'pending') {
+            // Redirect to pending approval page
+            router.push('/pending-approval');
+          } else {
+            // Clear old stored email if not pending anymore
+            localStorage.removeItem('pendingRegistrationEmail');
+            setCheckingExisting(false);
+          }
+        })
+        .catch(() => {
+          setCheckingExisting(false);
+        });
+    } else {
+      setCheckingExisting(false);
     }
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,36 +68,12 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Persist pending registration on this device
-      try {
-        localStorage.setItem(
-          'registrationPending',
-          JSON.stringify({ email: formData.email, createdAt: Date.now() })
-        );
-      } catch (e) {
-        // ignore localStorage errors
-      }
-
+      // Store the email in localStorage to persist the pending state
+      localStorage.setItem('pendingRegistrationEmail', formData.email.toLowerCase());
       setSuccess(true);
-
-      // Also send a programmatic POST to Netlify Forms so submissions are recorded
-      try {
-        const params = new URLSearchParams();
-        params.append('form-name', 'register');
-        params.append('fullName', formData.fullName);
-        params.append('email', formData.email);
-        params.append('konamiId', formData.konamiId);
-        params.append('platform', formData.platform);
-        // leave bot-field empty
-        await fetch('/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString(),
-        });
-      } catch (e) {
-        // ignore Netlify submission errors
-      }
-      // Do not auto-redirect; keep the success page visible until admin approval
+      setTimeout(() => {
+        router.push('/pending-approval');
+      }, 2000);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -95,63 +81,34 @@ export default function RegisterPage() {
     }
   };
 
-  const checkApproval = async () => {
-    setError('');
-    try {
-      const raw = localStorage.getItem('registrationPending');
-      if (!raw) return;
-      const { email } = JSON.parse(raw);
-      const res = await fetch(`/api/auth/approval-status?email=${encodeURIComponent(email)}`);
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message || 'Failed to check status');
-      if (body.status === 'approved') {
-        // remove pending flag and navigate to login
-        localStorage.removeItem('registrationPending');
-        router.push('/login?registered=true');
-      } else if (body.status === 'rejected') {
-        setError('Your registration was rejected by an admin.');
-        localStorage.removeItem('registrationPending');
-      } else {
-        // still pending
-        setError('Still pending approval. Please check back later.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Could not check approval status');
-    }
-  };
+  if (checkingExisting) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-12">
+        <div className="card text-center">
+          <div className="text-4xl mb-4 animate-pulse">...</div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="card text-center">
-          <div className="text-6xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-neon-green mb-4">Registration Received</h2>
-          <p className="text-gray-300 mb-6">
-            Your registration has been received and is pending admin approval. You'll receive an
-            email notification once approved.
-          </p>
-          <p className="text-sm text-gray-400 mb-4">Registered email: <strong>{formData.email}</strong></p>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-400">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={checkApproval}
-              className="btn-secondary"
-            >
-              Check Approval Status
-            </button>
-            <button
-              onClick={() => router.push('/login')}
-              className="btn-primary"
-            >
-              Go to Login
-            </button>
+          <div className="text-6xl mb-4">
+            <span role="img" aria-label="hourglass">⏳</span>
           </div>
+          <h2 className="text-2xl font-bold text-yellow-400 mb-4">Pending Approval</h2>
+          <p className="text-gray-300 mb-6">
+            Your registration has been submitted successfully! Your account is now pending approval by an administrator.
+          </p>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-400">
+              You will be able to log in once an admin reviews and approves your registration.
+            </p>
+          </div>
+          <p className="text-sm text-gray-400">Redirecting to status page...</p>
         </div>
       </div>
     );
