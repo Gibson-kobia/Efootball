@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,12 +17,28 @@ export default function RegisterPage() {
     platform: 'mobile',
   });
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('registrationPending');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.email) {
+          setSuccess(true);
+          setFormData((f) => ({ ...f, email: parsed.email }));
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      // Submit to server (creates a pending registration record)
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,10 +58,35 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Registration failed');
       }
 
+      // Persist pending state locally so the confirmation message remains
+      try {
+        localStorage.setItem(
+          'registrationPending',
+          JSON.stringify({ email: data.email || formData.email, createdAt: Date.now() })
+        );
+      } catch (e) {
+        // ignore
+      }
+
+      // Programmatic POST to Netlify Forms so submission appears in Netlify dashboard
+      try {
+        const params = new URLSearchParams();
+        params.append('form-name', 'register');
+        params.append('fullName', formData.fullName);
+        params.append('email', formData.email);
+        params.append('konamiId', formData.konamiId);
+        params.append('platform', formData.platform);
+        await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString(),
+        });
+      } catch (e) {
+        // ignore Netlify submission errors
+      }
+
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/login?registered=true');
-      }, 2000);
+      // Do not redirect; keep the success message visible until admin approval
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -58,12 +99,26 @@ export default function RegisterPage() {
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="card text-center">
           <div className="text-6xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-neon-green mb-4">Registration Successful!</h2>
+          <h2 className="text-2xl font-bold text-neon-green mb-4">Registration Received</h2>
           <p className="text-gray-300 mb-6">
-            Your registration has been received. An admin will review and approve your account soon.
-            You'll receive an email notification once approved.
+            Your registration request has been received and is pending approval from the admin.
           </p>
-          <p className="text-sm text-gray-400">Redirecting to login...</p>
+          <p className="text-sm text-gray-400 mb-4">Registered email: <strong>{formData.email}</strong></p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push('/login')}
+              className="btn-primary"
+            >
+              Go to Login
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -81,7 +136,21 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          name="register"
+          method="POST"
+          data-netlify="true"
+          data-netlify-honeypot="bot-field"
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          <input type="hidden" name="form-name" value="register" />
+          <input type="hidden" name="platform" value={formData.platform} />
+          <div style={{ display: 'none' }}>
+            <label>
+              Don’t fill this out if you're human: <input name="bot-field" />
+            </label>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Full Name *
