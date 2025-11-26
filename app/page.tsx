@@ -26,6 +26,7 @@ export default function HomePage() {
             <p className="text-xl md:text-2xl text-neon-green">
               Get a chance to win 3,350 dollars
             </p>
+            <p className="text-lg md:text-xl text-neon-green">All the Best!</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
