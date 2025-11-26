@@ -126,7 +126,22 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          name="register"
+          method="POST"
+          data-netlify="true"
+          data-netlify-honeypot="bot-field"
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          {/* Netlify hidden inputs */}
+          <input type="hidden" name="form-name" value="register" />
+          <input type="hidden" name="platform" value={formData.platform} />
+          <div style={{ display: 'none' }}>
+            <label>
+              Don't fill this out if you're human: <input name="bot-field" />
+            </label>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Full Name *
