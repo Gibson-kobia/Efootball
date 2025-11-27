@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -17,6 +18,7 @@ export default function RegisterPage() {
     platform: 'mobile',
   });
 
+<<<<<<< HEAD
   useEffect(() => {
     try {
       const raw = localStorage.getItem('registrationPending');
@@ -31,6 +33,32 @@ export default function RegisterPage() {
       // ignore
     }
   }, []);
+=======
+  // Check if user already has a pending registration on this device
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('pendingRegistrationEmail');
+    if (storedEmail) {
+      // Verify the registration is still pending
+      fetch(`/api/auth/approval-status?email=${encodeURIComponent(storedEmail)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'pending') {
+            // Redirect to pending approval page
+            router.push('/pending-approval');
+          } else {
+            // Clear old stored email if not pending anymore
+            localStorage.removeItem('pendingRegistrationEmail');
+            setCheckingExisting(false);
+          }
+        })
+        .catch(() => {
+          setCheckingExisting(false);
+        });
+    } else {
+      setCheckingExisting(false);
+    }
+  }, [router]);
+>>>>>>> e93bd10760cd4db07c051dc6bc5f8e6ffe28abae
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +86,7 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Registration failed');
       }
 
+<<<<<<< HEAD
       // Persist pending state locally so the confirmation message remains
       try {
         localStorage.setItem(
@@ -87,6 +116,14 @@ export default function RegisterPage() {
 
       setSuccess(true);
       // Do not redirect; keep the success message visible until admin approval
+=======
+      // Store the email in localStorage to persist the pending state
+      localStorage.setItem('pendingRegistrationEmail', formData.email.toLowerCase());
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/pending-approval');
+      }, 2000);
+>>>>>>> e93bd10760cd4db07c051dc6bc5f8e6ffe28abae
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -94,10 +131,22 @@ export default function RegisterPage() {
     }
   };
 
+  if (checkingExisting) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-12">
+        <div className="card text-center">
+          <div className="text-4xl mb-4 animate-pulse">...</div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="max-w-md mx-auto px-4 py-12">
         <div className="card text-center">
+<<<<<<< HEAD
           <div className="text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold text-neon-green mb-4">Registration Received</h2>
           <p className="text-gray-300 mb-6">
@@ -119,6 +168,21 @@ export default function RegisterPage() {
               Go to Login
             </button>
           </div>
+=======
+          <div className="text-6xl mb-4">
+            <span role="img" aria-label="hourglass">⏳</span>
+          </div>
+          <h2 className="text-2xl font-bold text-yellow-400 mb-4">Pending Approval</h2>
+          <p className="text-gray-300 mb-6">
+            Your registration has been submitted successfully! Your account is now pending approval by an administrator.
+          </p>
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-400">
+              You will be able to log in once an admin reviews and approves your registration.
+            </p>
+          </div>
+          <p className="text-sm text-gray-400">Redirecting to status page...</p>
+>>>>>>> e93bd10760cd4db07c051dc6bc5f8e6ffe28abae
         </div>
       </div>
     );
@@ -144,11 +208,19 @@ export default function RegisterPage() {
           onSubmit={handleSubmit}
           className="space-y-4"
         >
+<<<<<<< HEAD
+=======
+          {/* Netlify hidden inputs */}
+>>>>>>> e93bd10760cd4db07c051dc6bc5f8e6ffe28abae
           <input type="hidden" name="form-name" value="register" />
           <input type="hidden" name="platform" value={formData.platform} />
           <div style={{ display: 'none' }}>
             <label>
+<<<<<<< HEAD
               Don’t fill this out if you're human: <input name="bot-field" />
+=======
+              Don't fill this out if you're human: <input name="bot-field" />
+>>>>>>> e93bd10760cd4db07c051dc6bc5f8e6ffe28abae
             </label>
           </div>
           <div>

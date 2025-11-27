@@ -58,6 +58,12 @@ export default function LoginContent() {
         <h1 className="text-4xl font-bold text-gradient mb-2">Login</h1>
         <p className="text-gray-400 mb-8">Welcome back to Efootball Showdown</p>
 
+        {searchParams?.get('approved') === 'true' && (
+          <div className="mb-6 p-4 bg-green-900/30 border border-green-500/50 rounded-lg text-green-400">
+            Your account has been approved! You can now log in.
+          </div>
+        )}
+
         {searchParams?.get('registered') === 'true' && (
           <div className="mb-6 p-4 bg-green-900/30 border border-green-500/50 rounded-lg text-green-400">
             Registration successful! Please log in to continue.
