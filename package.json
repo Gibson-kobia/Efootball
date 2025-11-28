@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/init-db.js && next build",
+    "postinstall": "npm rebuild better-sqlite3 --build-from-source",
     "start": "next start",
     "lint": "next lint",
     "db:init": "node scripts/init-db.js"
