@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/init-db.js && npm run build"
+  command = "npm install && npm rebuild better-sqlite3 --build-from-source && node scripts/init-db.js && npm run build"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
