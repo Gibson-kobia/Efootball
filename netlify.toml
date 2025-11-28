@@ -1,5 +1,8 @@
 [build]
-  command = "npm install && npm rebuild better-sqlite3 --build-from-source && node scripts/init-db.js && npm run build"
+  command = "npm run build"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[env]
+  DATABASE_URL = "postgresql://placeholder@placeholder/placeholder"

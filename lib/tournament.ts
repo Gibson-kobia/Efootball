@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { query, get, run } from './db';
 import { getRoundName } from './utils';
 
 export interface Round {
@@ -33,17 +33,18 @@ export interface Round {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
-export function generateBracket(tournamentId: number): void {
-  const db = getDb();
-
+export async function generateBracket(tournamentId: number): Promise<void> {
   // Get all approved registrations
-  const registrations = db.prepare(`
-    SELECT r.user_id, u.full_name, u.efootball_id
-    FROM registrations r
-    JOIN users u ON r.user_id = u.id
-    WHERE r.tournament_id = ? AND u.status = 'approved'
-    ORDER BY r.registered_at
-  `).all(tournamentId) as Array<{ user_id: number; full_name: string; efootball_id: string }>;
+  const registrationsRes = await query(
+    `SELECT r.user_id, u.full_name, u.efootball_id
+     FROM registrations r
+     JOIN users u ON r.user_id = u.id
+     WHERE r.tournament_id = $1 AND u.status = 'approved'
+     ORDER BY r.registered_at`,
+    [tournamentId]
+  );
+
+  const registrations = registrationsRes.rows as Array<{ user_id: number; full_name: string; efootball_id: string }>;
 
   if (registrations.length === 0) {
     throw new Error('No approved registrations found');
@@ -54,133 +55,121 @@ export function generateBracket(tournamentId: number): void {
 
   // Create rounds
   const roundDates = [
-    '2025-12-10', // Day 1: Rounds 1-3
     '2025-12-10',
     '2025-12-10',
-    '2025-12-11', // Day 2: Rounds 4-6
+    '2025-12-10',
     '2025-12-11',
     '2025-12-11',
-    '2025-12-12', // Day 3: Rounds 7-8
+    '2025-12-11',
     '2025-12-12',
-    '2025-12-13', // Day 4: Semi-finals
-    '2025-12-13', // Day 4: Final
+    '2025-12-12',
+    '2025-12-13',
+    '2025-12-13',
   ];
-
-  const insertRound = db.prepare(`
-    INSERT INTO rounds (tournament_id, round_number, round_name, scheduled_date, status)
-    VALUES (?, ?, ?, ?, 'pending')
-  `);
 
   for (let i = 1; i <= totalRounds; i++) {
     const roundName = getRoundName(i);
     const scheduledDate = roundDates[i - 1] || '2025-12-10';
-    insertRound.run(tournamentId, i, roundName, scheduledDate);
+    await run(
+      `INSERT INTO rounds (tournament_id, round_number, round_name, scheduled_date, status)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [tournamentId, i, roundName, scheduledDate, 'pending']
+    );
   }
 
   // Get round IDs
-  const rounds = db.prepare(`
-    SELECT id, round_number FROM rounds WHERE tournament_id = ? ORDER BY round_number
-  `).all(tournamentId) as Array<{ id: number; round_number: number }>;
+  const roundsRes = await query(
+    `SELECT id, round_number FROM rounds WHERE tournament_id = $1 ORDER BY round_number`,
+    [tournamentId]
+  );
+  const rounds = roundsRes.rows as Array<{ id: number; round_number: number }>;
 
   // Generate first round matches
   const firstRound = rounds[0];
-  const insertMatch = db.prepare(`
-    INSERT INTO matches (tournament_id, round_id, player1_id, player2_id, match_number, status)
-    VALUES (?, ?, ?, ?, ?, 'pending')
-  `);
-
   let matchNumber = 1;
   const players = [...registrations];
 
-  // Handle bye if odd number of players
-  if (players.length % 2 !== 0) {
-    // Last player gets a bye in round 4 (when we have 125 players)
-    // For now, we'll pair them normally and handle bye in later rounds
-  }
-
   // First round: pair all players
   for (let i = 0; i < players.length - 1; i += 2) {
-    insertMatch.run(
-      tournamentId,
-      firstRound.id,
-      players[i].user_id,
-      players[i + 1]?.user_id || null,
-      matchNumber++,
-      'pending'
+    await run(
+      `INSERT INTO matches (tournament_id, round_id, player1_id, player2_id, match_number, status)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [tournamentId, firstRound.id, players[i].user_id, players[i + 1]?.user_id || null, matchNumber++, 'pending']
     );
   }
 
   // If odd number, last player gets a bye (will advance automatically)
   if (players.length % 2 !== 0) {
-    insertMatch.run(
-      tournamentId,
-      firstRound.id,
-      players[players.length - 1].user_id,
-      null,
-      matchNumber++,
-      'pending'
+    await run(
+      `INSERT INTO matches (tournament_id, round_id, player1_id, player2_id, match_number, status)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [tournamentId, firstRound.id, players[players.length - 1].user_id, null, matchNumber++, 'pending']
     );
   }
 
   // Update tournament status
-  db.prepare('UPDATE tournaments SET status = ? WHERE id = ?')
-    .run('brackets_generated', tournamentId);
+  await run('UPDATE tournaments SET status = $1 WHERE id = $2', ['brackets_generated', tournamentId]);
 
   // Create notifications for all players
-  const insertNotification = db.prepare(`
-    INSERT INTO notifications (user_id, type, title, message, link)
-    VALUES (?, 'tournament_update', 'Bracket Generated', 'Tournament bracket has been generated! Check your dashboard for your first match.', '/dashboard')
-  `);
-
   for (const reg of registrations) {
-    insertNotification.run(reg.user_id);
+    await run(
+      `INSERT INTO notifications (user_id, type, title, message, link)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [reg.user_id, 'tournament_update', 'Bracket Generated', 'Tournament bracket has been generated! Check your dashboard for your first match.', '/dashboard']
+    );
   }
 }
 
-export function getPlayerMatches(userId: number, tournamentId: number): Match[] {
-  const db = getDb();
-  return db.prepare(`
-    SELECT m.*, 
-           r.round_name, r.round_number,
-           p1.full_name as player1_name, p1.efootball_id as player1_id_name,
-           p2.full_name as player2_name, p2.efootball_id as player2_id_name,
-           w.full_name as winner_name
-    FROM matches m
-    JOIN rounds r ON m.round_id = r.id
-    LEFT JOIN users p1 ON m.player1_id = p1.id
-    LEFT JOIN users p2 ON m.player2_id = p2.id
-    LEFT JOIN users w ON m.winner_id = w.id
-    WHERE m.tournament_id = ? AND (m.player1_id = ? OR m.player2_id = ?)
-    ORDER BY r.round_number, m.match_number
-  `).all(tournamentId, userId, userId) as Match[];
+export async function getPlayerMatches(userId: number, tournamentId: number): Promise<Match[]> {
+  const res = await query(
+    `SELECT m.*, 
+            r.round_name, r.round_number,
+            p1.full_name as player1_name, p1.efootball_id as player1_id_name,
+            p2.full_name as player2_name, p2.efootball_id as player2_id_name,
+            w.full_name as winner_name
+     FROM matches m
+     JOIN rounds r ON m.round_id = r.id
+     LEFT JOIN users p1 ON m.player1_id = p1.id
+     LEFT JOIN users p2 ON m.player2_id = p2.id
+     LEFT JOIN users w ON m.winner_id = w.id
+     WHERE m.tournament_id = $1 AND (m.player1_id = $2 OR m.player2_id = $2)
+     ORDER BY r.round_number, m.match_number`,
+    [tournamentId, userId]
+  );
+
+  return res.rows as Match[];
 }
 
-export function getBracketData(tournamentId: number): { rounds: (Round & { matches: Match[] })[] } {
-  const db = getDb();
-  const rounds = db.prepare(`
-    SELECT r.*, COUNT(m.id) as match_count
-    FROM rounds r
-    LEFT JOIN matches m ON r.id = m.round_id
-    WHERE r.tournament_id = ?
-    GROUP BY r.id
-    ORDER BY r.round_number
-  `).all(tournamentId) as Round[];
+export async function getBracketData(tournamentId: number): Promise<{ rounds: (Round & { matches: Match[] })[] }> {
+  const roundsRes = await query(
+    `SELECT r.*, COUNT(m.id) as match_count
+     FROM rounds r
+     LEFT JOIN matches m ON r.id = m.round_id
+     WHERE r.tournament_id = $1
+     GROUP BY r.id
+     ORDER BY r.round_number`,
+    [tournamentId]
+  );
 
+  const rounds = roundsRes.rows as Round[];
   const bracket: { rounds: (Round & { matches: Match[] })[] } = { rounds: [] };
 
   for (const round of rounds) {
-    const matches = db.prepare(`
-      SELECT m.*,
-             p1.full_name as player1_name, p1.efootball_id as player1_id_name,
-             p2.full_name as player2_name, p2.efootball_id as player2_id_name,
-             w.full_name as winner_name
-      FROM matches m
-      LEFT JOIN users p1 ON m.player1_id = p1.id
-      LEFT JOIN users p2 ON m.player2_id = p2.id
-      LEFT JOIN users w ON m.winner_id = w.id
-      WHERE m.round_id = ?
-      ORDER BY m.match_number
-    `).all(round.id) as Match[];
+    const matchesRes = await query(
+      `SELECT m.*,
+              p1.full_name as player1_name, p1.efootball_id as player1_id_name,
+              p2.full_name as player2_name, p2.efootball_id as player2_id_name,
+              w.full_name as winner_name
+       FROM matches m
+       LEFT JOIN users p1 ON m.player1_id = p1.id
+       LEFT JOIN users p2 ON m.player2_id = p2.id
+       LEFT JOIN users w ON m.winner_id = w.id
+       WHERE m.round_id = $1
+       ORDER BY m.match_number`,
+      [round.id]
+    );
+
+    const matches = matchesRes.rows as Match[];
 
     bracket.rounds.push({
       ...round,
@@ -191,41 +180,38 @@ export function getBracketData(tournamentId: number): { rounds: (Round & { match
   return bracket;
 }
 
-export function advanceWinner(matchId: number): void {
-  const db = getDb();
-  const match = db.prepare('SELECT * FROM matches WHERE id = ?').get(matchId) as Match | undefined;
+export async function advanceWinner(matchId: number): Promise<void> {
+  const match = await get<Match>('SELECT * FROM matches WHERE id = $1', [matchId]);
 
   if (!match || !match.winner_id) {
     throw new Error('Match not found or no winner');
   }
 
-  // Find next round
-  const currentRound = db.prepare('SELECT * FROM rounds WHERE id = ?').get(match.round_id) as Round | undefined;
+  // Find current round
+  const currentRound = await get<Round>('SELECT * FROM rounds WHERE id = $1', [match.round_id]);
   if (!currentRound) return;
 
-  const nextRound = db.prepare(`
-    SELECT * FROM rounds 
-    WHERE tournament_id = ? AND round_number = ?
-  `).get(match.tournament_id, currentRound.round_number + 1) as Round | undefined;
+  const nextRound = await get<Round>(
+    `SELECT * FROM rounds WHERE tournament_id = $1 AND round_number = $2`,
+    [match.tournament_id, currentRound.round_number + 1]
+  );
 
   if (!nextRound) return; // Tournament finished
 
   // Find next match in next round
   const nextMatchNumber = Math.ceil(match.match_number / 2);
-  const nextMatch = db.prepare(`
-    SELECT * FROM matches 
-    WHERE round_id = ? AND match_number = ?
-  `).get(nextRound.id, nextMatchNumber) as Match | undefined;
+  const nextMatch = await get<Match>(
+    `SELECT * FROM matches WHERE round_id = $1 AND match_number = $2`,
+    [nextRound.id, nextMatchNumber]
+  );
 
   if (!nextMatch) return;
 
   // Assign winner to next match
   if (nextMatch.match_number % 2 === 1) {
-    db.prepare('UPDATE matches SET player1_id = ? WHERE id = ?')
-      .run(match.winner_id, nextMatch.id);
+    await run('UPDATE matches SET player1_id = $1 WHERE id = $2', [match.winner_id, nextMatch.id]);
   } else {
-    db.prepare('UPDATE matches SET player2_id = ? WHERE id = ?')
-      .run(match.winner_id, nextMatch.id);
+    await run('UPDATE matches SET player2_id = $1 WHERE id = $2', [match.winner_id, nextMatch.id]);
   }
 }
 

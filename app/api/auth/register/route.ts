@@ -1,5 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 import { registerSchema } from '@/lib/validations';
 
@@ -24,11 +26,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
+    const email = body.email.toLowerCase();
 
     // Check if email already exists
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(body.email);
-    if (existingUser) {
+    const existingUserResult = await query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+    if (existingUserResult.rows.length > 0) {
       return NextResponse.json(
         { message: 'Email already registered' },
         { status: 400 }
@@ -36,8 +41,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if Konami ID already exists
-    const existingId = db.prepare('SELECT id FROM users WHERE efootball_id = ?').get(body.konamiId);
-    if (existingId) {
+    const existingIdResult = await query(
+      'SELECT id FROM users WHERE efootball_id = $1',
+      [body.konamiId]
+    );
+    if (existingIdResult.rows.length > 0) {
       return NextResponse.json(
         { message: 'Konami ID already registered' },
         { status: 400 }
@@ -47,31 +55,37 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(body.password);
 
-    // Create user
-    const result = db.prepare(`
-      INSERT INTO users (email, password, full_name, phone, efootball_id, platform, role, status)
-      VALUES (?, ?, ?, ?, ?, ?, 'player', 'pending')
-    `).run(
-      body.email.toLowerCase(),
-      hashedPassword,
-      body.fullName,
-      body.phone ?? 'N/A',
-      body.konamiId,
-      body.platform
+    // Create user and get the inserted ID
+    const userResult = await query(
+      `INSERT INTO users (email, password, full_name, phone, efootball_id, platform, role, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'player', 'pending')
+       RETURNING id`,
+      [
+        email,
+        hashedPassword,
+        body.fullName,
+        body.phone ?? 'N/A',
+        body.konamiId,
+        body.platform,
+      ]
     );
+
+    const userId = userResult.rows[0].id;
 
     // Auto-register for tournament (tournament ID 1)
     const tournamentId = 1;
-    db.prepare(`
-      INSERT INTO registrations (user_id, tournament_id, payment_status)
-      VALUES (?, ?, 'pending')
-    `).run(result.lastInsertRowid, tournamentId);
+    await query(
+      `INSERT INTO registrations (user_id, tournament_id, payment_status)
+       VALUES ($1, $2, 'pending')`,
+      [userId, tournamentId]
+    );
 
     // Create notification
-    db.prepare(`
-      INSERT INTO notifications (user_id, type, title, message)
-      VALUES (?, 'system', 'Registration Received', 'Your registration has been received and is pending admin approval.')
-    `).run(result.lastInsertRowid);
+    await query(
+      `INSERT INTO notifications (user_id, type, title, message)
+       VALUES ($1, 'system', 'Registration Received', 'Your registration has been received and is pending admin approval.')`,
+      [userId]
+    );
 
     return NextResponse.json(
       { message: 'Registration successful! Admin approval pending.' },
@@ -86,4 +100,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

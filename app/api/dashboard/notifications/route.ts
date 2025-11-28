@@ -1,18 +1,22 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET() {
   try {
     const user = await requireAuth();
-    const db = getDb();
     
-    const notifications = db.prepare(`
-      SELECT * FROM notifications 
-      WHERE user_id = ? 
-      ORDER BY created_at DESC 
-      LIMIT 50
-    `).all(user.id);
+    const result = await query(
+      `SELECT * FROM notifications 
+       WHERE user_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 50`,
+      [user.id]
+    );
+    
+    const notifications = result.rows;
     
     return NextResponse.json({ notifications });
   } catch (error: unknown) {

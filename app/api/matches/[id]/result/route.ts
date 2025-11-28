@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { get, run } from '@/lib/db';
 import { advanceWinner } from '@/lib/tournament';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
@@ -11,12 +13,12 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth();
-    const db = getDb();
     
     // Get match
-    const match = db.prepare(`
-      SELECT * FROM matches WHERE id = ? AND (player1_id = ? OR player2_id = ?)
-    `).get(parseInt(params.id), user.id, user.id) as Record<string, unknown>;
+    const match = await get<Record<string, unknown>>(
+      `SELECT * FROM matches WHERE id = $1 AND (player1_id = $2 OR player2_id = $3)`,
+      [parseInt(params.id), user.id, user.id]
+    );
     
     if (!match) {
       return NextResponse.json(
@@ -45,11 +47,14 @@ export async function POST(
     }
     
     // Determine winner
-    let winnerId = null;
+    let winnerId: number | null = null;
+    const player1Id = match.player1_id as number;
+    const player2Id = match.player2_id as number;
+    
     if (player1Score > player2Score) {
-      winnerId = match.player1_id;
+      winnerId = player1Id;
     } else if (player2Score > player1Score) {
-      winnerId = match.player2_id;
+      winnerId = player2Id;
     } else {
       return NextResponse.json(
         { message: 'Match cannot end in a tie' },
@@ -70,24 +75,25 @@ export async function POST(
     const screenshotUrl = `/uploads/${filename}`;
     
     // Update match
-    db.prepare(`
-      UPDATE matches 
-      SET player1_score = ?, player2_score = ?, winner_id = ?, 
-          result_screenshot = ?, result_uploaded_by = ?, status = 'completed'
-      WHERE id = ?
-    `).run(player1Score, player2Score, winnerId, screenshotUrl, user.id, parseInt(params.id));
+    await run(
+      `UPDATE matches 
+       SET player1_score = $1, player2_score = $2, winner_id = $3, 
+           result_screenshot = $4, result_uploaded_by = $5, status = $6
+       WHERE id = $7`,
+      [player1Score, player2Score, winnerId, screenshotUrl, user.id, 'completed', parseInt(params.id)]
+    );
     
     // Advance winner to next round
     advanceWinner(parseInt(params.id));
     
     // Create notifications
-    const opponentId = match.player1_id === user.id ? match.player2_id : match.player1_id;
+    const opponentId = player1Id === user.id ? player2Id : player1Id;
     if (opponentId) {
-      db.prepare(`
-        INSERT INTO notifications (user_id, type, title, message, link)
-        VALUES (?, 'match_result', 'Match Result Submitted', 
-                'Your opponent has submitted the match result. Admin will verify soon.', '/dashboard')
-      `).run(opponentId);
+      await run(
+        `INSERT INTO notifications (user_id, type, title, message, link)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [opponentId, 'match_result', 'Match Result Submitted', 'Your opponent has submitted the match result. Admin will verify soon.', '/dashboard']
+      );
     }
     
     return NextResponse.json({ message: 'Result submitted successfully' });

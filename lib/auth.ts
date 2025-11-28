@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
-import { getDb } from './db';
+import { get } from './db';
 
 const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -56,8 +56,7 @@ export async function getCurrentUser(): Promise<User | null> {
     const payload = await verifyToken(token);
     if (!payload) return null;
 
-    const db = getDb();
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id) as User | undefined;
+    const user = await get<User>('SELECT * FROM users WHERE id = $1', [payload.id as number]);
 
     return user || null;
   } catch {

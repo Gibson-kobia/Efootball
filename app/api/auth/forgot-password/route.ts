@@ -1,5 +1,7 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { run, get } from '@/lib/db';
 import { generateOTP } from '@/lib/utils';
 import { passwordResetSchema } from '@/lib/validations';
 
@@ -15,8 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
-    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(body.email.toLowerCase()) as { id: number } | undefined;
+    const user = await get<{ id: number }>('SELECT id FROM users WHERE email = $1', [body.email.toLowerCase()]);
     
     if (!user) {
       // Don't reveal if email exists
@@ -32,10 +33,11 @@ export async function POST(request: NextRequest) {
     expiresAt.setMinutes(expiresAt.getMinutes() + 15); // 15 minutes
 
     // Save OTP
-    db.prepare(`
-      INSERT INTO otp_codes (user_id, code, type, expires_at)
-      VALUES (?, ?, 'password_reset', ?)
-    `).run(user.id, code, expiresAt.toISOString());
+    await run(
+      `INSERT INTO otp_codes (user_id, code, type, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [user.id, code, 'password_reset', expiresAt.toISOString()]
+    );
 
     // TODO: Send email with OTP
     // For now, we'll just log it (in production, use nodemailer)

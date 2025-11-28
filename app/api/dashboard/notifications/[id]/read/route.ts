@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { run } from '@/lib/db';
 
 export async function POST(
   request: NextRequest,
@@ -8,13 +10,13 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth();
-    const db = getDb();
     
-    db.prepare(`
-      UPDATE notifications 
-      SET read = 1 
-      WHERE id = ? AND user_id = ?
-    `).run(parseInt(params.id), user.id);
+    await run(
+      `UPDATE notifications 
+       SET read = 1 
+       WHERE id = $1 AND user_id = $2`,
+      [parseInt(params.id), user.id]
+    );
     
     return NextResponse.json({ message: 'Notification marked as read' });
   } catch (error: unknown) {

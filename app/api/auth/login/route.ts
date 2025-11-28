@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getDb } from '@/lib/db';
+import { get } from '@/lib/db';
 import { verifyPassword, createToken } from '@/lib/auth';
 import { loginSchema } from '@/lib/validations';
 
@@ -31,10 +33,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
-
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(body.email.toLowerCase()) as User | undefined;
+    const user = await get<User>('SELECT * FROM users WHERE email = $1', [body.email.toLowerCase()]);
     
     if (!user) {
       return NextResponse.json(
