@@ -75,8 +75,9 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push('/pending-approval');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -140,7 +141,7 @@ export default function RegisterPage() {
           <input type="hidden" name="platform" value={formData.platform} />
           <div style={{ display: 'none' }}>
             <label>
-              Don't fill this out if you're human: <input name="bot-field" />
+              Don&apos;t fill this out if you&apos;re human: <input name="bot-field" />
             </label>
           </div>
           <div>

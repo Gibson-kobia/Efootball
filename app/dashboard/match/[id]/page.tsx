@@ -29,8 +29,10 @@ export default function MatchPage() {
     player2Score: '',
     screenshot: null as File | null,
   });
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<Record<string, unknown> | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchMatch();
     fetchUser();
@@ -51,8 +53,8 @@ export default function MatchPage() {
         const data = await res.json();
         setMatch(data.match);
       }
-    } catch (error) {
-      console.error('Error fetching match:', error);
+    } catch (_error) {
+      console.error('Error fetching match:', _error);
     } finally {
       setLoading(false);
     }
@@ -88,8 +90,9 @@ export default function MatchPage() {
 
       alert('Result uploaded successfully! Admin will verify it soon.');
       router.push('/dashboard');
-    } catch (error: any) {
-      alert(error.message || 'Failed to upload result');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload result';
+      alert(message);
     } finally {
       setUploading(false);
     }

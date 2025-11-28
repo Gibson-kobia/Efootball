@@ -16,7 +16,7 @@ export async function POST(
     // Get match
     const match = db.prepare(`
       SELECT * FROM matches WHERE id = ? AND (player1_id = ? OR player2_id = ?)
-    `).get(parseInt(params.id), user.id, user.id) as any;
+    `).get(parseInt(params.id), user.id, user.id) as Record<string, unknown>;
     
     if (!match) {
       return NextResponse.json(
@@ -91,10 +91,11 @@ export async function POST(
     }
     
     return NextResponse.json({ message: 'Result submitted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to submit result';
     console.error('Error submitting result:', error);
     return NextResponse.json(
-      { message: error.message || 'Failed to submit result' },
+      { message },
       { status: 500 }
     );
   }

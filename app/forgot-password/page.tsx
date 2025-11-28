@@ -29,8 +29,9 @@ export default function ForgotPasswordPage() {
       }
 
       setMessage('Password reset code sent to your email. Please check your inbox.');
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset code');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send reset code';
+      setError(message);
     } finally {
       setLoading(false);
     }

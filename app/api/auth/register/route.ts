@@ -77,10 +77,11 @@ export async function POST(request: NextRequest) {
       { message: 'Registration successful! Admin approval pending.' },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Registration failed. Please try again.';
     console.error('Registration error:', error);
     return NextResponse.json(
-      { message: 'Registration failed. Please try again.' },
+      { message },
       { status: 500 }
     );
   }

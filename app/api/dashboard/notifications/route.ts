@@ -15,10 +15,12 @@ export async function GET() {
     `).all(user.id);
     
     return NextResponse.json({ notifications });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : (error === 'Unauthorized' ? 'Unauthorized' : 'Failed to fetch notifications');
+    const status = message === 'Unauthorized' ? 401 : 500;
     return NextResponse.json(
-      { message: error.message || 'Failed to fetch notifications' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { message },
+      { status }
     );
   }
 }

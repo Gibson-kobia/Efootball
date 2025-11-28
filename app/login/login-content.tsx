@@ -45,8 +45,9 @@ export default function LoginContent() {
       } else {
         router.push('/dashboard');
       }
-    } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -125,7 +126,7 @@ export default function LoginContent() {
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-400">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-neon-green hover:underline">
             Register here
           </Link>

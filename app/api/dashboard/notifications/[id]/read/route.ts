@@ -17,10 +17,12 @@ export async function POST(
     `).run(parseInt(params.id), user.id);
     
     return NextResponse.json({ message: 'Notification marked as read' });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : (error === 'Unauthorized' ? 'Unauthorized' : 'Failed to update notification');
+    const status = message === 'Unauthorized' ? 401 : 500;
     return NextResponse.json(
-      { message: error.message || 'Failed to update notification' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { message },
+      { status }
     );
   }
 }

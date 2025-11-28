@@ -10,7 +10,7 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold text-neon-green mb-4">Welcome to the Ultimate Tournament</h2>
           <p className="text-gray-300 leading-relaxed">
             Efootball Showdown 2025 is the premier single-elimination tournament for eFootball 2025 players worldwide. 
-            With a prize pool of $10,000 and space for 1,000 competitors, this is your chance to prove you're the best 
+            With a prize pool of $10,000 and space for 1,000 competitors, this is your chance to prove you&apos;re the best 
             on the virtual pitch. Top 32 participants receive cash prizes!
           </p>
         </div>
@@ -18,7 +18,7 @@ export default function AboutPage() {
         <div className="card">
           <h2 className="text-2xl font-bold text-neon-green mb-4">Tournament Structure</h2>
           <p className="text-gray-300 mb-4">
-            The tournament follows a single-elimination bracket format, meaning one loss and you're out. 
+            The tournament follows a single-elimination bracket format, meaning one loss and you&apos;re out. 
             The competition is fierce, and only the most skilled players will advance.
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-300 ml-4">

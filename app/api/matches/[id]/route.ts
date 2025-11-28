@@ -19,7 +19,7 @@ export async function GET(
       LEFT JOIN users p1 ON m.player1_id = p1.id
       LEFT JOIN users p2 ON m.player2_id = p2.id
       WHERE m.id = ? AND (m.player1_id = ? OR m.player2_id = ?)
-    `).get(parseInt(params.id), user.id, user.id) as any;
+    `).get(parseInt(params.id), user.id, user.id) as Record<string, unknown>;
     
     if (!match) {
       return NextResponse.json(
@@ -29,10 +29,12 @@ export async function GET(
     }
     
     return NextResponse.json({ match });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : (error === 'Unauthorized' ? 'Unauthorized' : 'Failed to fetch match');
+    const status = message === 'Unauthorized' ? 401 : 500;
     return NextResponse.json(
-      { message: error.message || 'Failed to fetch match' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { message },
+      { status }
     );
   }
 }

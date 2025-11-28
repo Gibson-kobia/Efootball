@@ -8,10 +8,12 @@ export async function GET() {
     const matches = getPlayerMatches(user.id, 1); // Tournament ID 1
     
     return NextResponse.json({ matches });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : (error === 'Unauthorized' ? 'Unauthorized' : 'Failed to fetch matches');
+    const status = message === 'Unauthorized' ? 401 : 500;
     return NextResponse.json(
-      { message: error.message || 'Failed to fetch matches' },
-      { status: error.message === 'Unauthorized' ? 401 : 500 }
+      { message },
+      { status },
     );
   }
 }

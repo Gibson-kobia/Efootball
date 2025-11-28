@@ -20,9 +20,10 @@ export async function GET() {
     `).all();
     
     return NextResponse.json({ matches });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch matches';
     return NextResponse.json(
-      { message: error.message || 'Failed to fetch matches' },
+      { message },
       { status: 500 }
     );
   }

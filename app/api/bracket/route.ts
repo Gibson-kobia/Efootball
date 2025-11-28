@@ -5,9 +5,10 @@ export async function GET() {
   try {
     const bracket = getBracketData(1); // Tournament ID 1
     return NextResponse.json(bracket);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch bracket';
     return NextResponse.json(
-      { message: error.message || 'Failed to fetch bracket' },
+      { message },
       { status: 500 }
     );
   }

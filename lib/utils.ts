@@ -29,7 +29,7 @@ export function formatDateTime(date: Date | string): string {
   });
 }
 
-export function getRoundName(roundNumber: number, totalPlayers: number): string {
+export function getRoundName(roundNumber: number): string {
   const rounds: Record<number, string> = {
     1: 'Round 1',
     2: 'Round 2',

@@ -72,7 +72,7 @@ export function generateBracket(tournamentId: number): void {
   `);
 
   for (let i = 1; i <= totalRounds; i++) {
-    const roundName = getRoundName(i, totalPlayers);
+    const roundName = getRoundName(i);
     const scheduledDate = roundDates[i - 1] || '2025-12-10';
     insertRound.run(tournamentId, i, roundName, scheduledDate);
   }
@@ -155,7 +155,7 @@ export function getPlayerMatches(userId: number, tournamentId: number): Match[] 
   `).all(tournamentId, userId, userId) as Match[];
 }
 
-export function getBracketData(tournamentId: number): any {
+export function getBracketData(tournamentId: number): { rounds: (Round & { matches: Match[] })[] } {
   const db = getDb();
   const rounds = db.prepare(`
     SELECT r.*, COUNT(m.id) as match_count
@@ -166,7 +166,7 @@ export function getBracketData(tournamentId: number): any {
     ORDER BY r.round_number
   `).all(tournamentId) as Round[];
 
-  const bracket: any = { rounds: [] };
+  const bracket: { rounds: (Round & { matches: Match[] })[] } = { rounds: [] };
 
   for (const round of rounds) {
     const matches = db.prepare(`
@@ -180,7 +180,7 @@ export function getBracketData(tournamentId: number): any {
       LEFT JOIN users w ON m.winner_id = w.id
       WHERE m.round_id = ?
       ORDER BY m.match_number
-    `).all(round.id);
+    `).all(round.id) as Match[];
 
     bracket.rounds.push({
       ...round,

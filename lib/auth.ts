@@ -38,10 +38,10 @@ export async function createToken(user: User): Promise<string> {
   );
 }
 
-export async function verifyToken(token: string): Promise<any> {
+export async function verifyToken(token: string): Promise<Record<string, unknown> | null> {
   try {
-    return jwt.verify(token, secret);
-  } catch (error) {
+    return jwt.verify(token, secret) as Record<string, unknown> | null;
+  } catch {
     return null;
   }
 }
@@ -60,7 +60,7 @@ export async function getCurrentUser(): Promise<User | null> {
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id) as User | undefined;
 
     return user || null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

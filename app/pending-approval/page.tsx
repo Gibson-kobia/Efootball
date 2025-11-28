@@ -11,6 +11,7 @@ export default function PendingApprovalPage() {
   const [status, setStatus] = useState<ApprovalStatus>('checking');
   const [email, setEmail] = useState<string | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Check if there's a pending registration stored locally
     const storedEmail = localStorage.getItem('pendingRegistrationEmail');
@@ -48,8 +49,8 @@ export default function PendingApprovalPage() {
       } else {
         setStatus('pending');
       }
-    } catch (error) {
-      console.error('Error checking approval status:', error);
+    } catch (_error) {
+      console.error('Error checking approval status:', _error);
       setStatus('pending'); // Assume pending if there's an error
     }
   };
@@ -109,7 +110,7 @@ export default function PendingApprovalPage() {
           <div className="text-6xl mb-4">
             <span role="img" aria-label="celebration">🎉</span>
           </div>
-          <h2 className="text-2xl font-bold text-neon-green mb-4">You're Approved!</h2>
+          <h2 className="text-2xl font-bold text-neon-green mb-4">You&apos;re Approved!</h2>
           <p className="text-gray-300 mb-6">
             Great news! Your registration has been approved by an admin.
             You can now log in and participate in the tournament.
@@ -157,7 +158,7 @@ export default function PendingApprovalPage() {
           </div>
           <h2 className="text-2xl font-bold text-yellow-400 mb-4">Registration Not Found</h2>
           <p className="text-gray-300 mb-6">
-            We couldn't find your registration in our system.
+            We couldn&apos;t find your registration in our system.
             This may have been cleared or there was an issue during registration.
           </p>
           <div className="space-y-3">

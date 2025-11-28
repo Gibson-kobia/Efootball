@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getDb();
-    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(body.email.toLowerCase()) as any;
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(body.email.toLowerCase()) as { id: number } | undefined;
     
     if (!user) {
       // Don't reveal if email exists
@@ -44,10 +44,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: 'If an account exists with this email, a reset code has been sent.',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to process request';
     console.error('Forgot password error:', error);
     return NextResponse.json(
-      { message: 'Failed to process request' },
+      { message },
       { status: 500 }
     );
   }

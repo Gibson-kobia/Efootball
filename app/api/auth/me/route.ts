@@ -21,7 +21,7 @@ export async function GET() {
         status: user.status,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { message: 'Authentication error' },
       { status: 500 }

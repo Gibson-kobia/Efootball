@@ -76,7 +76,7 @@ export default function BracketPage() {
       
       <div className="overflow-x-auto">
         <div className="flex gap-8 min-w-max pb-8">
-          {bracket.rounds.map((round, roundIndex) => (
+          {bracket.rounds.map((round) => (
             <div key={round.id} className="flex-shrink-0">
               <div className="card mb-4">
                 <h2 className="text-xl font-bold text-neon-green mb-2">{round.round_name}</h2>

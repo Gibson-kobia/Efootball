@@ -27,7 +27,7 @@ export default function RulesPage() {
                 <li>Matches must be played on eFootball 2025</li>
                 <li>Default match settings as specified by tournament organizers</li>
                 <li>Players must complete matches within the scheduled time window</li>
-                <li>If a player doesn't show up within 15 minutes, they forfeit</li>
+                <li>If a player doesn&apos;t show up within 15 minutes, they forfeit</li>
               </ul>
             </section>
 

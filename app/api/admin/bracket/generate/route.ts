@@ -7,9 +7,10 @@ export async function POST() {
     await requireAdmin();
     generateBracket(1); // Tournament ID 1
     return NextResponse.json({ message: 'Bracket generated successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to generate bracket';
     return NextResponse.json(
-      { message: error.message || 'Failed to generate bracket' },
+      { message },
       { status: 500 }
     );
   }

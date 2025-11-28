@@ -29,9 +29,9 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'registrations' | 'matches' | 'bracket'>('registrations');
   const [users, setUsers] = useState<User[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     checkAuth();
   }, []);
@@ -48,9 +48,8 @@ export default function AdminPage() {
         router.push('/dashboard');
         return;
       }
-      setUser(data.user);
       fetchData();
-    } catch (error) {
+    } catch {
       router.push('/login');
     }
   };

@@ -4,6 +4,20 @@ import { getDb } from '@/lib/db';
 import { verifyPassword, createToken } from '@/lib/auth';
 import { loginSchema } from '@/lib/validations';
 
+type User = {
+  id: number;
+  email: string;
+  password: string;
+  full_name: string;
+  phone: string;
+  efootball_id: string;
+  platform: string;
+  role: 'player' | 'admin';
+  status: 'pending' | 'approved' | 'rejected';
+  email_verified: number;
+  phone_verified: number;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -20,7 +34,7 @@ export async function POST(request: NextRequest) {
     const db = getDb();
 
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(body.email.toLowerCase()) as any;
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(body.email.toLowerCase()) as User | undefined;
     
     if (!user) {
       return NextResponse.json(
@@ -79,10 +93,11 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Login failed. Please try again.';
     console.error('Login error:', error);
     return NextResponse.json(
-      { message: 'Login failed. Please try again.' },
+      { message },
       { status: 500 }
     );
   }

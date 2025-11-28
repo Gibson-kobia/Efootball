@@ -20,9 +20,10 @@ export async function POST(
     `).run(parseInt(params.id));
     
     return NextResponse.json({ message: 'User approved successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to approve user';
     return NextResponse.json(
-      { message: error.message || 'Failed to approve user' },
+      { message },
       { status: 500 }
     );
   }

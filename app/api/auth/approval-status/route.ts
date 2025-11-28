@@ -24,8 +24,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const status = (row.status as ApiStatus) || 'unknown';
 
     return NextResponse.json({ status });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to check approval status';
     console.error('Approval status error:', error);
-    return NextResponse.json({ message: 'Failed to check approval status' }, { status: 500 });
+    return NextResponse.json({ message }, { status: 500 });
   }
 }
